@@ -1,6 +1,6 @@
 # RAG Project Management Backend
 
-This repository contains a minimal Node.js backend server for the RAG Project Management workspace. The server is built with [Express](https://expressjs.com/) and exposes a couple of basic routes to verify that the service is running.
+This repository contains a minimal Node.js backend server for the RAG Project Management workspace. The server is built with [Express](https://expressjs.com/) and now includes a lightweight Retrieval Augmented Generation (RAG) pipeline that can ingest Excel sprint backlogs and answer natural language questions about the imported tasks.
 
 ## Prerequisites
 
@@ -33,6 +33,19 @@ This repository contains a minimal Node.js backend server for the RAG Project Ma
 
 - `GET /` – returns a welcome message.
 - `GET /health` – returns a simple health check payload.
+- `POST /ingest` – accepts an Excel `.xls`/`.xlsx` file (field name `file`), parses the first worksheet using the sprint backlog template, and stores the rows in the in-memory knowledge base.
+- `POST /query` – accepts a JSON payload containing a `question` string (and optional `topK` number) and returns the most relevant tasks alongside a synthesized answer generated from the best match.
+
+Example query payload:
+
+```bash
+curl -X POST http://localhost:3000/query \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "question": "Which tasks are assigned to QA_Olivia?",
+    "topK": 2
+  }'
+```
 
 Both endpoints respond with JSON.
 
