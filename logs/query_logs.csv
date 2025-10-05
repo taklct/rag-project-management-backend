@@ -1,0 +1,7 @@
+timestamp,question,top_k,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-09-20 15:18:25,How many transactions on 2025-09-05?,3,1426,1824,3250,17.864
+2025-09-20 15:32:39,Give me summary of sep 2025,3,1566,5574,7140,51.044
+2025-09-20 16:50:15,How many transactions on 2025-09-05?,3,1426,1370,2796,14.796
+2025-09-20 17:04:52,How many transactions on 2025-09-05?,3,1426,812,2238,9.171
+2025-10-05 11:47:15,How many transactions on 2025-09-05?,3,1426,852,2278,6.617
+2025-10-05 11:53:12,How many tasks this sprint?,3,1476,793,2269,5.209
