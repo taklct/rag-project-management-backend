@@ -8,11 +8,11 @@ import csv
 import pickle
 import hashlib
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any, Optional, Literal
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from openai import AzureOpenAI
 
 from project_dashboard import load_project_tasks, router as project_dashboard_router
@@ -300,7 +300,29 @@ def log_query(row: Dict[str, Any]) -> None:
         writer.writerow(row)
 
 # ===================== FastAPI app =====================
-app = FastAPI(title="RAG Backend")
+app = FastAPI(
+    title="RAG Project Management Backend",
+    description=(
+        "Backend APIs for building retrieval-augmented generation (RAG) indexes "
+        "and querying project management insights. Use the `/docs` endpoint to "
+        "explore the automatically generated Swagger UI."
+    ),
+    version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "Indexing",
+            "description": "Manage retrieval indexes generated from uploaded workbooks.",
+        },
+        {
+            "name": "Q&A",
+            "description": "Ask questions over the indexed project documents using RAG.",
+        },
+        {
+            "name": "Project Dashboard",
+            "description": "Access metrics and task listings extracted from project workbooks.",
+        },
+    ],
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -312,15 +334,119 @@ app.add_middleware(
 app.include_router(project_dashboard_router)
 
 class BuildBody(BaseModel):
-    rebuild: bool = False
+    """Request payload for `/build` to trigger index creation."""
+
+    rebuild: bool = Field(
+        False,
+        description=(
+            "Recreate indexes even if cached embeddings already exist for the source "
+            "workbooks."
+        ),
+    )
+
+
+class IndexedFileSummary(BaseModel):
+    """Summary of an indexed workbook and its embedding cache."""
+
+    xlsx: str = Field(..., description="Workbook filename that was processed.")
+    pkl: str = Field(..., description="Generated embedding cache filename.")
+    chunks: int = Field(..., description="Number of text chunks extracted from the workbook.")
+    signature: str = Field(
+        ..., description="Short hash of the workbook contents used for cache validation."
+    )
+
+
+class ProjectDashboardStatus(BaseModel):
+    """Status information about the project dashboard cache."""
+
+    ok: bool = Field(..., description="Whether project dashboard data is available.")
+    count: Optional[int] = Field(
+        None, description="Number of cached project tasks when available."
+    )
+    error: Optional[str] = Field(
+        None, description="Details when the dashboard data could not be loaded."
+    )
+
+
+class BuildResponse(BaseModel):
+    """Response returned by the `/build` endpoint."""
+
+    ok: Literal[True] = Field(True, description="Whether the build completed successfully.")
+    built: List[IndexedFileSummary] = Field(
+        default_factory=list,
+        description="Details for each workbook that was indexed.",
+    )
+    message: Optional[str] = Field(
+        None, description="Helpful message when no workbooks were available to index."
+    )
+    project_dashboard: ProjectDashboardStatus = Field(
+        ..., description="Status of the project dashboard cache after the build runs."
+    )
+
 
 class AskBody(BaseModel):
-    question: str
-    top_k: Optional[int] = None
-    temperature: Optional[float] = None
+    """Request payload for `/ask` to run a RAG-powered query."""
 
-@app.post("/build")
-def build_indexes(body: BuildBody):
+    question: str = Field(..., description="Natural language question to ask over the data.")
+    top_k: Optional[int] = Field(
+        None,
+        description="Number of most similar chunks to retrieve from the index (defaults to 3).",
+        ge=1,
+    )
+    temperature: Optional[float] = Field(
+        None,
+        description=(
+            "Sampling temperature for the language model. Leave unset to use the "
+            "default configuration."
+        ),
+        ge=0.0,
+    )
+
+
+class TokenUsage(BaseModel):
+    """Token accounting metadata returned by Azure OpenAI."""
+
+    prompt_tokens: Optional[int] = Field(
+        None, description="Tokens consumed by the prompt portion of the request."
+    )
+    completion_tokens: Optional[int] = Field(
+        None, description="Tokens generated in the completion response."
+    )
+    total_tokens: Optional[int] = Field(
+        None, description="Total tokens counted for the request.")
+
+
+class AskSuccessResponse(BaseModel):
+    """Successful response for the `/ask` endpoint."""
+
+    ok: Literal[True] = Field(True, description="Indicates the question was processed.")
+    answer: str = Field(..., description="Generated answer from the language model.")
+    usage: Optional[TokenUsage] = Field(
+        None, description="Token usage metrics reported by the language model."
+    )
+    duration_sec: float = Field(..., description="Time taken to build the response in seconds.")
+    top_scores: List[float] = Field(
+        ..., description="Similarity scores for the retrieved context chunks."
+    )
+    indexed_files: List[str] = Field(
+        ..., description="Workbook filenames that contributed to the retrieval context."
+    )
+
+
+class AskErrorResponse(BaseModel):
+    """Error payload returned when the `/ask` endpoint cannot run."""
+
+    ok: Literal[False] = Field(False, description="Indicates the question could not be run.")
+    error: str = Field(..., description="Reason why the request failed.")
+
+@app.post(
+    "/build",
+    response_model=BuildResponse,
+    tags=["Indexing"],
+    summary="Generate embeddings for available workbooks",
+    response_description="Details about the index build and project dashboard cache.",
+)
+def build_indexes(body: BuildBody) -> BuildResponse:
     xlsx_list = list_xlsx(SOURCE_DIR)
     if not xlsx_list:
         response: Dict[str, Any] = {
@@ -334,8 +460,8 @@ def build_indexes(body: BuildBody):
             dashboard = {"ok": False, "error": "Project tasks workbook not found."}
         except Exception as exc:  # pragma: no cover - defensive
             dashboard = {"ok": False, "error": str(exc)}
-        response["project_dashboard"] = dashboard
-        return response
+        response["project_dashboard"] = ProjectDashboardStatus(**dashboard)
+        return BuildResponse(**response)
 
     built = []
     for path in xlsx_list:
@@ -353,16 +479,24 @@ def build_indexes(body: BuildBody):
     except Exception as exc:  # pragma: no cover - defensive
         dashboard = {"ok": False, "error": str(exc)}
 
-    return {"ok": True, "built": built, "project_dashboard": dashboard}
+    return BuildResponse(built=built, project_dashboard=ProjectDashboardStatus(**dashboard))
 
-@app.post("/ask")
-def ask_question(body: AskBody):
+@app.post(
+    "/ask",
+    response_model=AskSuccessResponse | AskErrorResponse,
+    tags=["Q&A"],
+    summary="Ask a question using retrieval augmented generation",
+    response_description="Generated answer or an error describing why the request failed.",
+)
+def ask_question(body: AskBody) -> AskSuccessResponse | AskErrorResponse:
     top_k = body.top_k or DEFAULT_TOP_K
     temperature = 1 if body.temperature is None else body.temperature
 
     xlsx_list = list_xlsx(SOURCE_DIR)
     if not xlsx_list:
-        return {"ok": False, "error": "No .xlsx/.xls files in ./data_sources. Build first via /build."}
+        return AskErrorResponse(
+            error="No .xlsx/.xls files in ./data_sources. Build first via /build."
+        )
 
     all_chunks: List[str] = []
     all_embs: List[List[float]] = []
@@ -389,14 +523,15 @@ def ask_question(body: AskBody):
         "duration_sec": round(duration, 3),
     })
 
-    return {
-        "ok": True,
-        "answer": answer,
-        "usage": usage,
-        "duration_sec": round(duration, 3),
-        "top_scores": top_scores,
-        "indexed_files": [os.path.basename(p) for p in xlsx_list],
-    }
+    token_usage = TokenUsage(**usage) if usage else None
+
+    return AskSuccessResponse(
+        answer=answer,
+        usage=token_usage,
+        duration_sec=round(duration, 3),
+        top_scores=top_scores,
+        indexed_files=[os.path.basename(p) for p in xlsx_list],
+    )
 
 if __name__ == "__main__":
     import uvicorn
