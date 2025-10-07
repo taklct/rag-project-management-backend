@@ -13,3 +13,6 @@ DEFAULT_MAX_COMPLETION_TOKENS = 10000
 SOURCE_DIR = "./data_sources"
 LOG_DIR = "./logs"
 LOG_PATH = f"{LOG_DIR}/query_logs.csv"
+
+# API endpoints
+API_SERVER = "http://localhost:8000"
