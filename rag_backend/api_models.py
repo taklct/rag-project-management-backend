@@ -71,7 +71,8 @@ class AskBody(BaseModel):
         None,
         description=(
             "Sampling temperature for the language model. Leave unset to use the "
-            "default configuration."
+            "default configuration. Some Azure deployments only allow the default "
+            "value."
         ),
         ge=0.0,
     )

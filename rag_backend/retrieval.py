@@ -54,16 +54,18 @@ def ask_llm(
     chat_deployment: str,
     messages: List[Dict[str, str]],
     *,
-    temperature: float = 1,
+    temperature: float | None = None,
     max_completion_tokens: int = 10000,
 ) -> Tuple[str, Dict[str, int | None], float]:
     start_time = time.time()
-    completion = client.chat.completions.create(
-        model=chat_deployment,
-        messages=messages,
-        max_completion_tokens=max_completion_tokens,
-        temperature=temperature,
-    )
+    request_kwargs = {
+        "model": chat_deployment,
+        "messages": messages,
+        "max_completion_tokens": max_completion_tokens,
+    }
+    if temperature is not None:
+        request_kwargs["temperature"] = temperature
+    completion = client.chat.completions.create(**request_kwargs)
     duration = time.time() - start_time
     message = completion.choices[0].message
     usage = getattr(completion, "usage", None)
