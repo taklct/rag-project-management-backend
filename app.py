@@ -15,6 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import AzureOpenAI
 
+from project_dashboard import load_project_tasks, router as project_dashboard_router
+
 # ===================== Config =====================
 try:
     import config
@@ -307,6 +309,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(project_dashboard_router)
+
 class BuildBody(BaseModel):
     rebuild: bool = False
 
@@ -319,7 +323,19 @@ class AskBody(BaseModel):
 def build_indexes(body: BuildBody):
     xlsx_list = list_xlsx(SOURCE_DIR)
     if not xlsx_list:
-        return {"ok": True, "built": [], "message": "No .xlsx/.xls files found in ./data_sources."}
+        response: Dict[str, Any] = {
+            "ok": True,
+            "built": [],
+            "message": "No .xlsx/.xls files found in ./data_sources.",
+        }
+        try:
+            dashboard = load_project_tasks()
+        except FileNotFoundError:
+            dashboard = {"ok": False, "error": "Project tasks workbook not found."}
+        except Exception as exc:  # pragma: no cover - defensive
+            dashboard = {"ok": False, "error": str(exc)}
+        response["project_dashboard"] = dashboard
+        return response
 
     built = []
     for path in xlsx_list:
@@ -330,7 +346,14 @@ def build_indexes(body: BuildBody):
             "chunks": len(idx.chunks),
             "signature": idx.signature[:16]
         })
-    return {"ok": True, "built": built}
+    try:
+        dashboard = load_project_tasks()
+    except FileNotFoundError:
+        dashboard = {"ok": False, "error": "Project tasks workbook not found."}
+    except Exception as exc:  # pragma: no cover - defensive
+        dashboard = {"ok": False, "error": str(exc)}
+
+    return {"ok": True, "built": built, "project_dashboard": dashboard}
 
 @app.post("/ask")
 def ask_question(body: AskBody):
