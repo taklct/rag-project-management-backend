@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 SOURCE_DIR = "./data_sources"
 TASKS_FILENAME_CANDIDATES = (
@@ -16,7 +17,22 @@ TASKS_FILENAME_CANDIDATES = (
     "jira_project-management.xlsx",
 )
 
-router = APIRouter(prefix="/project-dashboard", tags=["Project Dashboard"])
+router = APIRouter(
+    prefix="/project-dashboard",
+    tags=["Project Dashboard"],
+    responses={
+        503: {
+            "description": "Project dashboard cache is not yet available.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Project tasks have not been loaded. Call /build first.",
+                    }
+                }
+            },
+        }
+    },
+)
 
 _tasks_cache: List[Dict[str, object]] = []
 _cached_sprint_numbers: List[int] = []
@@ -89,8 +105,78 @@ def _today() -> date:
     return date.today()
 
 
-@router.get("/task-summary")
-def task_summary() -> Dict[str, int]:
+class TaskSummaryResponse(BaseModel):
+    """Aggregated project metrics for the dashboard widgets."""
+
+    completed_today: int = Field(
+        ..., description="Number of tasks completed with an end date equal to today."
+    )
+    updated_today: int = Field(
+        ..., description="Tasks updated or ending today regardless of status."
+    )
+    created_today: int = Field(
+        ..., description="Tasks that have a start date equal to today."
+    )
+    overdue: int = Field(
+        ..., description="Tasks past their end date that are not yet marked as done."
+    )
+
+
+class SprintTask(BaseModel):
+    """Minimal representation of a task for sprint-based listings."""
+
+    assignee: Optional[str] = Field(
+        None, alias="Assignee", description="Primary owner assigned to the task."
+    )
+    team: Optional[str] = Field(
+        None, alias="Team", description="Team responsible for the task."
+    )
+    task_title: Optional[str] = Field(
+        None,
+        alias="Task Title",
+        description="Short, descriptive name summarising the work item.",
+    )
+    task_description: Optional[str] = Field(
+        None,
+        alias="Task Description",
+        description="Additional context or notes for the work item.",
+    )
+    status: Optional[str] = Field(
+        None, alias="Status", description="Current workflow status of the task."
+    )
+    priority: Optional[str] = Field(
+        None, alias="Priority", description="Relative priority for the work item."
+    )
+    story_point: Optional[float] = Field(
+        None,
+        alias="Story Point",
+        description="Effort estimate measured in story points if available.",
+    )
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class SprintTasksResponse(BaseModel):
+    """Tasks filtered by sprint for board-style views."""
+
+    sprint: Optional[int] = Field(
+        None, description="Sprint number that was requested or automatically selected."
+    )
+    count: int = Field(..., description="Number of tasks included in the response.")
+    tasks: List[SprintTask] = Field(
+        default_factory=list,
+        description="Tasks that belong to the requested sprint.",
+    )
+
+
+@router.get(
+    "/task-summary",
+    response_model=TaskSummaryResponse,
+    summary="Get task metrics for dashboard widgets",
+    response_description="Aggregated counts for key task indicators.",
+)
+def task_summary() -> TaskSummaryResponse:
     """Return summary counts for key task metrics."""
     _ensure_cache()
     today = _today()
@@ -117,12 +203,12 @@ def task_summary() -> Dict[str, int]:
         if end_date and end_date < today and status != "done":
             overdue += 1
 
-    return {
-        "completed_today": completed_today,
-        "updated_today": updated_today,
-        "created_today": created_today,
-        "overdue": overdue,
-    }
+    return TaskSummaryResponse(
+        completed_today=completed_today,
+        updated_today=updated_today,
+        created_today=created_today,
+        overdue=overdue,
+    )
 
 
 def _select_sprint_number(requested: Optional[int]) -> Optional[int]:
@@ -133,12 +219,17 @@ def _select_sprint_number(requested: Optional[int]) -> Optional[int]:
     return None
 
 
-@router.get("/tasks-of-sprint")
+@router.get(
+    "/tasks-of-sprint",
+    response_model=SprintTasksResponse,
+    summary="List tasks associated with a sprint",
+    response_description="Tasks filtered by the requested or latest sprint.",
+)
 def tasks_of_sprint(
     sprint: Optional[int] = Query(
         None, description="Sprint number to filter by. Defaults to the latest sprint."
     ),
-) -> Dict[str, object]:
+) -> SprintTasksResponse:
     """Return the tasks for the requested sprint."""
     _ensure_cache()
 
@@ -165,4 +256,4 @@ def tasks_of_sprint(
                 continue
         tasks.append({field: task.get(field) for field in fields})
 
-    return {"sprint": sprint_number, "count": len(tasks), "tasks": tasks}
+    return SprintTasksResponse(sprint=sprint_number, count=len(tasks), tasks=tasks)
