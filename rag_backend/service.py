@@ -68,7 +68,12 @@ def handle_build_request(request: BuildBody) -> BuildResponse:
 
 def handle_ask_request(request: AskBody) -> AskSuccessResponse | AskErrorResponse:
     top_k = request.top_k or DEFAULT_TOP_K
-    temperature = 1 if request.temperature is None else request.temperature
+    temperature_override = request.temperature
+    if temperature_override is not None and temperature_override != 1:
+        # Some Azure OpenAI chat deployments only support the default temperature of 1.
+        # Falling back to ``None`` avoids sending an unsupported value while still letting
+        # the request complete successfully.
+        temperature_override = None
 
     try:
         xlsx_list = list_xlsx(SOURCE_DIR)
@@ -115,7 +120,7 @@ def handle_ask_request(request: AskBody) -> AskSuccessResponse | AskErrorRespons
         AZURE_CLIENT,
         AZURE_SETTINGS.chat_deployment,
         messages,
-        temperature=temperature,
+        temperature=temperature_override,
         max_completion_tokens=10000,
     )
 
@@ -126,6 +131,8 @@ def handle_ask_request(request: AskBody) -> AskSuccessResponse | AskErrorRespons
             "timestamp": now_iso,
             "question": request.question,
             "top_k": top_k,
+            "temperature_requested": request.temperature,
+            "temperature_sent": temperature_override,
             "prompt_tokens": usage.get("prompt_tokens"),
             "completion_tokens": usage.get("completion_tokens"),
             "total_tokens": usage.get("total_tokens"),
