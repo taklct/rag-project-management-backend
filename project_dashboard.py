@@ -170,6 +170,51 @@ class SprintTasksResponse(BaseModel):
     )
 
 
+class TaskItem(BaseModel):
+    """Detailed representation of a task for status-based listings."""
+
+    task_title: Optional[str] = Field(
+        None,
+        alias="Task Title",
+        description="Short, descriptive name summarising the work item.",
+    )
+    status: Optional[str] = Field(
+        None, alias="Status", description="Current workflow status of the task."
+    )
+    assignee: Optional[str] = Field(
+        None, alias="Assignee", description="Primary owner assigned to the task."
+    )
+    team: Optional[str] = Field(
+        None, alias="Team", description="Team responsible for the task."
+    )
+    priority: Optional[str] = Field(
+        None, alias="Priority", description="Relative priority for the work item."
+    )
+    task_start_date: Optional[date] = Field(
+        None,
+        alias="Task start date",
+        description="Date the task is scheduled to begin.",
+    )
+    task_end_date: Optional[date] = Field(
+        None,
+        alias="Task end date",
+        description="Date the task is scheduled to be completed.",
+    )
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class TaskListResponse(BaseModel):
+    """Tasks filtered by status and due date criteria."""
+
+    count: int = Field(..., description="Number of tasks included in the response.")
+    tasks: List[TaskItem] = Field(
+        default_factory=list,
+        description="Tasks that match the requested filter criteria.",
+    )
+
+
 @router.get(
     "/task-summary",
     response_model=TaskSummaryResponse,
@@ -257,3 +302,58 @@ def tasks_of_sprint(
         tasks.append({field: task.get(field) for field in fields})
 
     return SprintTasksResponse(sprint=sprint_number, count=len(tasks), tasks=tasks)
+
+
+def _normalise_status(value: object) -> str:
+    if isinstance(value, str):
+        return value.strip().lower()
+    return ""
+
+
+def _is_overdue(task: Dict[str, object], today: date) -> bool:
+    end_date = _parse_date(task.get("Task end date"))
+    if end_date is None or end_date >= today:
+        return False
+    status = _normalise_status(task.get("Status"))
+    return status != "done"
+
+
+@router.get(
+    "/blocked-item",
+    response_model=TaskListResponse,
+    summary="List tasks currently blocked",
+    response_description="Tasks whose workflow status is marked as blocked.",
+)
+def blocked_tasks() -> TaskListResponse:
+    """Return tasks that are currently blocked."""
+    _ensure_cache()
+
+    blocked = [
+        TaskItem(**task)
+        for task in _tasks_cache
+        if _normalise_status(task.get("Status")) == "blocked"
+    ]
+
+    return TaskListResponse(count=len(blocked), tasks=blocked)
+
+
+@router.get(
+    "/overdue-item",
+    response_model=TaskListResponse,
+    summary="List tasks that are overdue",
+    response_description=(
+        "Tasks past their end date that are not yet marked as complete."
+    ),
+)
+def overdue_tasks() -> TaskListResponse:
+    """Return tasks that are overdue and not completed."""
+    _ensure_cache()
+    today = _today()
+
+    overdue_tasks = [
+        TaskItem(**task)
+        for task in _tasks_cache
+        if _is_overdue(task, today)
+    ]
+
+    return TaskListResponse(count=len(overdue_tasks), tasks=overdue_tasks)
