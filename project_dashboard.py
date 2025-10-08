@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import date
 from numbers import Number
 from typing import Dict, List, Optional
@@ -306,8 +307,17 @@ def tasks_of_sprint(
 
 def _normalise_status(value: object) -> str:
     if isinstance(value, str):
-        return value.strip().lower()
+        return value.strip().casefold()
     return ""
+
+
+def _is_blocked_status(value: object) -> bool:
+    """Return ``True`` when the provided status represents a blocked item."""
+
+    status = _normalise_status(value)
+    if not status:
+        return False
+    return bool(re.search(r"\bblocked\b", status))
 
 
 def _is_overdue(task: Dict[str, object], today: date) -> bool:
@@ -331,7 +341,7 @@ def blocked_tasks() -> TaskListResponse:
     blocked = [
         TaskItem(**task)
         for task in _tasks_cache
-        if _normalise_status(task.get("Status")) == "blocked"
+        if _is_blocked_status(task.get("Status"))
     ]
 
     return TaskListResponse(count=len(blocked), tasks=blocked)
