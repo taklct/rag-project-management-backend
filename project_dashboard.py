@@ -174,6 +174,11 @@ class SprintTasksResponse(BaseModel):
 class TaskItem(BaseModel):
     """Detailed representation of a task for status-based listings."""
 
+    task_number: Optional[str] = Field(
+        None,
+        alias="Task Number",
+        description="Unique identifier assigned to the task in the source system.",
+    )
     task_title: Optional[str] = Field(
         None,
         alias="Task Title",
