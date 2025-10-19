@@ -6,3 +6,5 @@ yarn-error.log*
 .pnpm-debug.log*
 dist
 .DS_Store
+__pycache__/
+*.pyc
