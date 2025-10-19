@@ -5,3 +5,27 @@ timestamp,question,top_k,prompt_tokens,completion_tokens,total_tokens,duration_s
 2025-09-20 17:04:52,How many transactions on 2025-09-05?,3,1426,812,2238,9.171
 2025-10-05 11:47:15,How many transactions on 2025-09-05?,3,1426,852,2278,6.617
 2025-10-05 11:53:12,How many tasks this sprint?,3,1476,793,2269,5.209
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-10 15:17:11,give me summary of Oct 2025,3,,,1459,1325,2784,16.133
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-10 16:56:56,give me summary of Oct 2025,3,,,1459,1104,2563,16.003
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-10 21:21:20,give me summary of Oct 2025,3,,,1459,1358,2817,18.218
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-10 21:24:03,what is john doing,3,,,1404,559,1963,10.475
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-10 21:25:11,what is today,3,,,1465,338,1803,6.355
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 14:05:57,what is today,3,,,1465,472,1937,5.327
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 14:06:49,what is today,3,,,1480,788,2268,7.921
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 14:07:21,what is today,3,,,1495,549,2044,6.207
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 14:10:52,what is today,3,,,1490,357,1847,4.326
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 14:11:08,what is current sprint,3,,,1482,221,1703,2.614
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 14:11:20,what is current sprint and today,3,,,1484,261,1745,3.395
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 14:11:45,what is john doing,3,,,1429,667,2096,6.906

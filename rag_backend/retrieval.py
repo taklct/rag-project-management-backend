@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple
 from openai import AzureOpenAI
 
 from .embeddings import cosine_similarity
-
+import datetime
 
 def retrieve_top_k(
     client: AzureOpenAI,
@@ -41,6 +41,8 @@ def build_messages(retrieved_chunks: List[str], question: str) -> List[Dict[str,
         "Here is the context from the document(s):\n"
         f"{context_block}\n\n"
         f"Question: {question}\n\n"
+        f"Current datetime:  {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n"+
+        f"Current Sprint:  {21}\n\n"+
         "Answer clearly. If relevant, quote short snippets."
     )
     return [
