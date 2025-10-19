@@ -171,6 +171,18 @@ class SprintTasksResponse(BaseModel):
     )
 
 
+class SprintStatusBucketsResponse(BaseModel):
+    """Sprint tasks grouped into board columns for quick status lookups."""
+
+    sprint: Optional[int] = Field(
+        None, description="Sprint number that was requested or automatically selected."
+    )
+    statuses: Dict[str, List[str]] = Field(
+        default_factory=dict,
+        description="Mapping of status names to formatted task listings.",
+    )
+
+
 class TaskItem(BaseModel):
     """Detailed representation of a task for status-based listings."""
 
@@ -270,6 +282,20 @@ def _select_sprint_number(requested: Optional[int]) -> Optional[int]:
     return None
 
 
+def _tasks_for_sprint(sprint_number: Optional[int]) -> List[Dict[str, object]]:
+    tasks: List[Dict[str, object]] = []
+    for task in _tasks_cache:
+        task_sprint = task.get("Sprint Number")
+        if sprint_number is not None:
+            try:
+                if int(task_sprint) != sprint_number:
+                    continue
+            except (TypeError, ValueError):
+                continue
+        tasks.append(task)
+    return tasks
+
+
 @router.get(
     "/tasks-of-sprint",
     response_model=SprintTasksResponse,
@@ -296,24 +322,98 @@ def tasks_of_sprint(
         "Story Point",
     ]
 
-    tasks: List[Dict[str, object]] = []
-    for task in _tasks_cache:
-        task_sprint = task.get("Sprint Number")
-        if sprint_number is not None:
-            try:
-                if int(task_sprint) != sprint_number:
-                    continue
-            except (TypeError, ValueError):
-                continue
-        tasks.append({field: task.get(field) for field in fields})
+    sprint_tasks = _tasks_for_sprint(sprint_number)
+    tasks = [{field: task.get(field) for field in fields} for task in sprint_tasks]
 
     return SprintTasksResponse(sprint=sprint_number, count=len(tasks), tasks=tasks)
+
+
+@router.get(
+    "/current-sprint-status",
+    response_model=SprintStatusBucketsResponse,
+    summary="Get the current sprint's tasks grouped by status",
+    response_description="Mapping of statuses to formatted task entries for the latest sprint.",
+)
+def current_sprint_status() -> SprintStatusBucketsResponse:
+    """Return the latest sprint's tasks grouped into board status buckets."""
+    _ensure_cache()
+
+    sprint_number = _select_sprint_number(None)
+    sprint_tasks = _tasks_for_sprint(sprint_number)
+
+    statuses: Dict[str, List[str]] = {label: [] for label in _STATUS_DISPLAY_ORDER}
+
+    for task in sprint_tasks:
+        label = _status_display_label(task.get("Status"))
+        entry = _format_task_entry(task.get("Task Number"), task.get("Task Title"))
+        if entry is None:
+            continue
+        statuses.setdefault(label, []).append(entry)
+
+    trimmed_statuses: Dict[str, List[str]] = {}
+    for label in _STATUS_DISPLAY_ORDER:
+        if statuses.get(label):
+            trimmed_statuses[label] = statuses[label]
+
+    for label, entries in statuses.items():
+        if label in trimmed_statuses:
+            continue
+        if entries:
+            trimmed_statuses[label] = entries
+
+    return SprintStatusBucketsResponse(sprint=sprint_number, statuses=trimmed_statuses)
 
 
 def _normalise_status(value: object) -> str:
     if isinstance(value, str):
         return value.strip().casefold()
     return ""
+
+
+_STATUS_LABELS = {
+    "to do": "TO DO",
+    "todo": "TO DO",
+    "in progress": "IN PROGRESS",
+    "in-progress": "IN PROGRESS",
+    "doing": "IN PROGRESS",
+    "done": "DONE",
+    "completed": "DONE",
+}
+
+_STATUS_DISPLAY_ORDER = ("TO DO", "IN PROGRESS", "DONE")
+
+
+def _status_display_label(value: object) -> str:
+    status = _normalise_status(value)
+    if not status:
+        return "UNKNOWN"
+    if status in _STATUS_LABELS:
+        return _STATUS_LABELS[status]
+    cleaned = status.replace("_", " ").replace("-", " ")
+    if cleaned:
+        return cleaned.upper()
+    return "UNKNOWN"
+
+
+def _format_task_entry(task_number: object, task_title: object) -> Optional[str]:
+    parts: List[str] = []
+    if isinstance(task_number, str):
+        number = task_number.strip()
+        if number:
+            parts.append(number)
+    elif task_number is not None:
+        parts.append(str(task_number))
+
+    if isinstance(task_title, str):
+        title = task_title.strip()
+        if title:
+            parts.append(title)
+    elif task_title is not None:
+        parts.append(str(task_title))
+
+    if not parts:
+        return None
+    return " ".join(parts)
 
 
 def _is_blocked_status(value: object) -> bool:
