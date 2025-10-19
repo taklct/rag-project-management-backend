@@ -332,31 +332,14 @@ def tasks_of_sprint(
     "/current-sprint-status",
     response_model=SprintStatusBucketsResponse,
     summary="Get the current sprint's tasks grouped by status",
-    response_description=(
-        "Mapping of statuses to formatted task entries for the latest sprint."
-    ),
+    response_description="Mapping of statuses to formatted task entries for the latest sprint.",
 )
-def current_sprint_status(
-    assignee: Optional[str] = Query(
-        None,
-        description=(
-            "Filter tasks by assignee. When omitted, all current sprint tasks are"
-            " included."
-        ),
-    )
-) -> SprintStatusBucketsResponse:
+def current_sprint_status() -> SprintStatusBucketsResponse:
     """Return the latest sprint's tasks grouped into board status buckets."""
     _ensure_cache()
 
     sprint_number = _select_sprint_number(None)
     sprint_tasks = _tasks_for_sprint(sprint_number)
-
-    if assignee:
-        sprint_tasks = [
-            task
-            for task in sprint_tasks
-            if _value_matches(task.get("Assignee"), assignee)
-        ]
 
     statuses: Dict[str, List[str]] = {label: [] for label in _STATUS_DISPLAY_ORDER}
 
@@ -388,47 +371,28 @@ def _normalise_status(value: object) -> str:
 
 
 _STATUS_LABELS = {
-    "to do": "To Do",
-    "todo": "To Do",
-    "in progress": "In Progress",
-    "in-progress": "In Progress",
-    "doing": "In Progress",
-    "done": "Done",
-    "completed": "Done",
-    "ready to work": "Ready to work",
-    "ready-to-work": "Ready to work",
-    "testing": "Testing",
-    "blocked": "Blocked",
+    "to do": "TO DO",
+    "todo": "TO DO",
+    "in progress": "IN PROGRESS",
+    "in-progress": "IN PROGRESS",
+    "doing": "IN PROGRESS",
+    "done": "DONE",
+    "completed": "DONE",
 }
 
-_STATUS_DISPLAY_ORDER = (
-    "To Do",
-    "Ready to work",
-    "In Progress",
-    "Testing",
-    "Blocked",
-    "Done",
-)
+_STATUS_DISPLAY_ORDER = ("TO DO", "IN PROGRESS", "DONE")
 
 
 def _status_display_label(value: object) -> str:
-    original = value.strip() if isinstance(value, str) else ""
     status = _normalise_status(value)
+    if not status:
+        return "UNKNOWN"
     if status in _STATUS_LABELS:
         return _STATUS_LABELS[status]
-    if original:
-        return original
-    if status:
-        cleaned = status.replace("_", " ").replace("-", " ")
-        if cleaned:
-            return " ".join(part.capitalize() for part in cleaned.split())
-    return "Unknown"
-
-
-def _value_matches(value: object, query: str) -> bool:
-    if not isinstance(value, str):
-        return False
-    return value.strip().casefold() == query.strip().casefold()
+    cleaned = status.replace("_", " ").replace("-", " ")
+    if cleaned:
+        return cleaned.upper()
+    return "UNKNOWN"
 
 
 def _format_task_entry(task_number: object, task_title: object) -> Optional[str]:
