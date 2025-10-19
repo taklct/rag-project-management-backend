@@ -28,6 +28,13 @@ class IndexedFileSummary(BaseModel):
     signature: str = Field(
         ..., description="Short hash of the workbook contents used for cache validation."
     )
+    rows: int | None = Field(
+        None,
+        description=(
+            "Number of non-empty rows detected across all sheets in the workbook."
+        ),
+        ge=0,
+    )
 
 
 class ProjectDashboardStatus(BaseModel):

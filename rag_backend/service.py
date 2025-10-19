@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import List
+from typing import List, Optional
 
 from .api_models import (
     AskBody,
@@ -22,6 +22,33 @@ from .logging_utils import log_query
 from .retrieval import ask_llm, build_messages, retrieve_top_k
 from .settings import AZURE_SETTINGS, DEFAULT_TOP_K, LOG_PATH, SOURCE_DIR
 from project_dashboard import load_project_tasks
+
+
+def _count_workbook_rows(path: str) -> Optional[int]:
+    """Return the number of non-empty rows in an Excel workbook when possible."""
+
+    lower_path = path.lower()
+    if not lower_path.endswith((".xlsx", ".xls")):
+        return None
+
+    try:  # Import lazily so that non-Excel builds do not require pandas.
+        import pandas as pd
+    except ImportError:  # pragma: no cover - dependency guard
+        return None
+
+    try:
+        dataframes = pd.read_excel(path, sheet_name=None)
+    except Exception:  # pragma: no cover - defensive against malformed workbooks
+        return None
+
+    row_count = 0
+    for dataframe in dataframes.values():
+        try:
+            row_count += len(dataframe.dropna(how="all"))
+        except Exception:  # pragma: no cover - defensive
+            continue
+
+    return row_count
 
 
 def _load_dashboard_status() -> ProjectDashboardStatus:
@@ -51,12 +78,14 @@ def handle_build_request(request: BuildBody) -> BuildResponse:
             AZURE_SETTINGS.embedding_deployment,
             rebuild=request.rebuild,
         )
+        row_count = _count_workbook_rows(path)
         built.append(
             IndexedFileSummary(
                 xlsx=os.path.basename(path),
                 pkl=os.path.basename(index_file.pkl_path),
                 chunks=len(index_file.chunks),
                 signature=index_file.signature[:16],
+                rows=row_count,
             )
         )
 
