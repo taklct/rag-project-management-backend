@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from .api_models import (
     AskBody,
@@ -20,6 +20,7 @@ from .azure import AZURE_CLIENT
 from .indexing import ensure_index, list_xlsx
 from .logging_utils import log_query
 from .retrieval import ask_llm, build_messages, retrieve_top_k
+from .embeddings import cosine_similarity
 from .settings import AZURE_SETTINGS, DEFAULT_TOP_K, LOG_PATH, SOURCE_DIR
 from project_dashboard import load_project_tasks
 
@@ -97,6 +98,8 @@ def handle_build_request(request: BuildBody) -> BuildResponse:
 
 def handle_ask_request(request: AskBody) -> AskSuccessResponse | AskErrorResponse:
     top_k = request.top_k or DEFAULT_TOP_K
+    print("request.top_k "+str(request.top_k))
+    print("DEFAULT_TOP_K "+str(DEFAULT_TOP_K))
     temperature_override = request.temperature
     if temperature_override is not None and temperature_override != 1:
         # Some Azure OpenAI chat deployments only support the default temperature of 1.
@@ -132,17 +135,109 @@ def handle_ask_request(request: AskBody) -> AskSuccessResponse | AskErrorRespons
         return AskErrorResponse(
             error="No indexed data available. Call /build to generate embeddings first."
         )
+    # Hybrid retrieval: prefer chunks that match intent and entities from the question
+    # (e.g., names like "John") and prioritize the Summary sheet for count-like queries,
+    # then fill up to k by embedding similarity.
+    q_text = request.question
+    q_lower = q_text.lower()
 
-    top = retrieve_top_k(
-        AZURE_CLIENT,
-        AZURE_SETTINGS.embedding_deployment,
-        request.question,
-        all_chunks,
-        all_embeddings,
-        k=top_k,
+    # Very light heuristic to extract potential entity tokens from the question.
+    # We only use tokens that appear in the data as "Assignee=<token>" to avoid noise.
+    import re
+
+    tokens = set(re.findall(r"[a-zA-Z][a-zA-Z\-']+", q_lower))
+    stop = {
+        "what",
+        "which",
+        "who",
+        "how",
+        "many",
+        "much",
+        "task",
+        "tasks",
+        "does",
+        "do",
+        "have",
+        "for",
+        "of",
+        "the",
+        "a",
+        "an",
+        "this",
+        "that",
+        "current",
+        "sprint",
+        "today",
+        "is",
+        "are",
+        "in",
+        "on",
+        "to",
+        "by",
+    }
+    candidates = [t for t in tokens if len(t) >= 3 and t not in stop]
+
+    # Detect counting intent to favor the Summary sheet
+    is_count_query = bool(
+        re.search(
+            r"\b(count|total|how\s+many|how\s+much|number\s+of|sum|total\s+tasks)\b",
+            q_lower,
+        )
     )
-    retrieved_chunks = [all_chunks[index] for index, _ in top]
-    top_scores = [round(score, 4) for _, score in top]
+
+    lexical_indices: List[int] = []
+    if candidates:
+        patterns = [f"assignee={t}" for t in candidates]
+        for idx, chunk in enumerate(all_chunks):
+            text = chunk.lower()
+            if any(p in text for p in patterns) or any(t in text for t in candidates):
+                lexical_indices.append(idx)
+
+    # Identify Summary sheet chunks when the question looks like a counting query
+    summary_indices: List[int] = []
+    if is_count_query:
+        for idx, chunk in enumerate(all_chunks):
+            if "--- sheet: summary ---" in chunk.lower():
+                summary_indices.append(idx)
+
+    # Compute similarities for all chunks once so we can score lexical matches.
+    question_embedding = (
+        AZURE_CLIENT.embeddings.create(
+            model=AZURE_SETTINGS.embedding_deployment, input=[q_text]
+        ).data[0].embedding
+    )
+    all_scores: List[Tuple[int, float]] = [
+        (i, cosine_similarity(question_embedding, emb)) for i, emb in enumerate(all_embeddings)
+    ]
+    all_scores.sort(key=lambda item: item[1], reverse=True)
+
+    ordered_indices: List[int] = []
+    # First, prioritize Summary sheet chunks if applicable
+    if summary_indices:
+        summary_set = set(summary_indices)
+        summary_scored = [(i, s) for i, s in all_scores if i in summary_set]
+        ordered_indices.extend([i for i, _ in summary_scored])
+
+    # Next, add lexical matches ordered by similarity
+    if lexical_indices:
+        lexical_set = set(lexical_indices)
+        lexical_scored = [(i, s) for i, s in all_scores if i in lexical_set]
+        for i, _ in lexical_scored:
+            if i not in ordered_indices:
+                ordered_indices.append(i)
+
+    # Finally, fill the rest with remaining top-similarity chunks
+    for i, _ in all_scores:
+        if len(ordered_indices) >= top_k:
+            break
+        if i not in ordered_indices:
+            ordered_indices.append(i)
+
+    # Truncate to k and compute the aligned scores
+    ordered_indices = ordered_indices[:top_k]
+    score_map = {i: s for i, s in all_scores}
+    retrieved_chunks = [all_chunks[i] for i in ordered_indices]
+    top_scores = [round(score_map[i], 4) for i in ordered_indices]
 
     messages = build_messages(retrieved_chunks, request.question)
     answer, usage, duration = ask_llm(

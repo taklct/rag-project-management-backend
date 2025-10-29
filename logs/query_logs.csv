@@ -29,3 +29,81 @@ timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,co
 2025-10-19 14:11:20,what is current sprint and today,3,,,1484,261,1745,3.395
 timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
 2025-10-19 14:11:45,what is john doing,3,,,1429,667,2096,6.906
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 17:13:39,what is john doing,3,,,1429,558,1987,7.869
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 17:16:03,what is john doing,3,,,1417,498,1915,6.638
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 17:21:48,how much tasks does john have,3,,,1414,431,1845,5.317
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 17:23:36,how much tasks does john have,3,,,1414,641,2055,6.849
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 17:23:55,how much tasks does john have,3,,,1414,599,2013,7.049
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:34:34,how much tasks does john have,3,,,1414,435,1849,8.44
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:35:30,how much rows in jira_project-management.xlsx,3,,,1461,1161,2622,13.805
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:46:31,how much tasks does john have,3,,,1414,602,2016,7.325
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:47:59,how much tasks does john have,3,,,1414,407,1821,4.988
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:49:12,how much tasks does john have,3,,,1414,515,1929,7.739
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:50:00,how much tasks does john have,3,,,1414,471,1885,7.175
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:52:44,how much tasks does john have,100,,,45732,4971,50703,55.193
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:53:36,how much tasks does john have in this sprint,100,,,45719,911,46630,12.436
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:54:32,how much tasks does john have in this sprint,50,,,22847,1083,23930,14.368
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:54:57,how much tasks does john have in this sprint,10,,,4596,706,5302,9.349
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 19:55:18,how much tasks does john have in this sprint,6,,,2774,525,3299,7.26
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:03:15,how much tasks does john have in this sprint,10,,,4596,758,5354,7.872
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:03:46,how much tasks does john have,3,,,1414,539,1953,8.18
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:04:22,how much tasks does john have,10,,,4598,1484,6082,17.304
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:05:05,how much tasks does john have,10,,,4598,818,5416,9.651
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:05:39,how much tasks does john have,10,,,4598,1165,5763,14.67
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:06:39,how much tasks does john have,10,,,4598,1476,6074,26.097
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:08:09,how much tasks does john have,50,,,22913,3053,25966,37.09
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:39:12,how much tasks does john have,10,,,4614,1359,5973,18.518
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:39:53,how much tasks does john have,10,,,4614,884,5498,12.994
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 20:40:34,how much tasks does john have,10,,,4614,1364,5978,17.383
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 21:06:36,how much tasks does john have,10,,,4613,1155,5768,13.103
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 21:11:27,how much tasks does john have,50,,,22875,2900,25775,31.586
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 21:12:19,how much tasks does john have,30,,,13744,2363,16107,24.786
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 21:21:10,how much tasks does john have,10,,,4613,1035,5648,14.494
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 21:31:07,how much tasks does john have,10,,,4717,1747,6464,24.026
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 21:34:23,how much tasks does john have,10,,,4774,1060,5834,14.158
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-19 21:35:35,how much tasks does john have,10,,,4775,1706,6481,21.363
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-20 21:28:26,how much tasks does john have,10,,,4775,1698,6473,25.018
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-22 00:13:55,how much tasks does john have,10,,,4775,1330,6105,27.898
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-23 21:08:26,how much tasks in total,10,,,4740,2001,6741,24.032
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-23 21:09:50,what is Cyrus doing,10,,,4719,923,5642,11.556
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-23 21:21:39,what is Cyrus doing,10,,,4719,951,5670,15.235
+timestamp,question,top_k,temperature_requested,temperature_sent,prompt_tokens,completion_tokens,total_tokens,duration_sec
+2025-10-24 23:18:34,what is Cyrus doing,10,,,4929,1243,6172,18.882

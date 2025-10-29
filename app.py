@@ -56,6 +56,17 @@ app.add_middleware(
 app.include_router(project_dashboard_router)
 
 
+@app.on_event("startup")
+def _auto_build_on_startup() -> None:
+    """Trigger a build on app startup with body {"rebuild": false}."""
+    try:
+        # Explicitly set rebuild to False as requested
+        handle_build_request(BuildBody(rebuild=False))
+    except Exception as exc:  # pragma: no cover - defensive
+        # Log and continue so the app still starts
+        print(f"Startup /build failed: {exc}")
+
+
 @app.post(
     "/build",
     response_model=BuildResponse,
