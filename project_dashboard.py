@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 import json
 import base64
-
+from aws_secret import secret_value
 try:  # Fallback to config.py for JIRA config if present
     import config  # type: ignore
 except Exception:  # pragma: no cover - defensive
@@ -159,7 +159,7 @@ def _jira_auth_header() -> Tuple[str, Dict[str, str]]:
         raise HTTPException(status_code=500, detail="Missing JIRA_API_URL (env or config.py)")
 
     username = _cfg_lookup("JIRA_USERNAME")
-    token = _cfg_lookup("JIRA_API_TOKEN")
+    token = secret_value["ragProjectManagerToken"]
     if not username or not token:
         raise HTTPException(
             status_code=500,
